@@ -1,0 +1,6 @@
+{
+  "extends": "@anchore/typescript-config/base.json"
+}
+
+
+
