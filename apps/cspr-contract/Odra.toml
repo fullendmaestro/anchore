@@ -1,2 +1,5 @@
 [[contracts]]
-fqn = "flipper::Flipper"
+fqn = "cspr_contract::AnchoreAMM"
+
+[[contracts]]
+fqn = "cspr_contract::AnchoreBridge"
