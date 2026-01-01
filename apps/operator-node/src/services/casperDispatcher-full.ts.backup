@@ -1,0 +1,110 @@
+import { 
+  RPC,
+  Args,
+  Value,
+  PublicKey,
+  Deploy,
+  Contract
+} from "casper-js-sdk";
+import { CONFIG } from "../config";
+
+const rpcClient = new RPC(CONFIG.CASPER.NODE);
+
+/**
+ * Releases bridged tokens on Casper Network
+ * @param recipientHex - Casper public key hex (with or without "01" prefix)
+ * @param amount - Amount in smallest unit (e.g., 1000000 = 1 USDC with 6 decimals)
+ * @param nonce - Unique nonce from source chain
+ * @param tokenAddress - CEP-18 token contract hash on Casper
+ * @param shouldSwap - If true, routes through AMM for cross-chain swap
+ */
+export async function releaseOnCasper(
+  recipientHex: string,
+  amount: bigint,
+  nonce: bigint,
+  tokenAddress: string,
+  shouldSwap: boolean = false
+): Promise<string> {
+  console.log(`\n[Casper] 🔧 Preparing release transaction...`);
+  console.log(`[Casper] 👤 Recipient: ${recipientHex}`);
+  console.log(`[Casper] 💰 Amount: ${amount}`);
+  console.log(`[Casper] 🔢 Nonce: ${nonce}`);
+  console.log(`[Casper] 🪙 Token: ${tokenAddress}`);
+  console.log(`[Casper] 🔄 Should Swap: ${shouldSwap}`);
+
+  // Validate and clean recipient address
+  let cleanRecipientHex = recipientHex.trim();
+  if (cleanRecipientHex.startsWith("0x")) {
+    cleanRecipientHex = cleanRecipientHex.slice(2);
+  }
+  
+  // Ensure it starts with "01" for Ed25519 keys (most common on Casper)
+  if (!cleanRecipientHex.startsWith("01") && !cleanRecipientHex.startsWith("02")) {
+    cleanRecipientHex = "01" + cleanRecipientHex;
+  }
+
+  // Clean token address (remove "hash-" prefix if present)
+  let cleanTokenHash = tokenAddress.trim();
+  if (cleanTokenHash.startsWith("hash-")) {
+    cleanTokenHash = cleanTokenHash.slice(5);
+  }
+
+  // Clean bridge hash
+  let cleanBridgeHash = CONFIG.CASPER.BRIDGE_HASH.trim();
+  if (cleanBridgeHash.startsWith("hash-")) {
+    cleanBridgeHash = cleanBridgeHash.slice(5);
+  }
+
+  const operatorKeys = CONFIG.CASPER.getKeys();
+  console.log(`[Casper] 🔑 Operator: ${operatorKeys.publicKey.toHex()}`);
+
+  try {
+    // Parse keys
+    const recipientKey = PublicKey.fromHex(cleanRecipientHex);
+    const tokenKey = PublicKey.fromHex(cleanTokenHash);
+
+    // Build arguments using v5 SDK
+    const args = new Args();
+    args.insert("recipient", Value.fromPublicKey(recipientKey));
+    args.insert("amount", Value.fromU256(amount));
+    args.insert("token_address", Value.fromPublicKey(tokenKey));
+    args.insert("nonce", Value.fromU256(nonce));
+    args.insert("should_swap", Value.fromBool(shouldSwap));
+
+    console.log(`[Casper] 📝 Building deploy...`);
+
+    // Create deploy
+    const deploy = Deploy.makeDeploy(
+      {
+        chainName: CONFIG.CASPER.CHAIN,
+        account: operatorKeys.publicKey,
+        payment: "5000000000", // 5 CSPR
+      },
+      Contract.makeDeploy(
+        {
+          entryPoint: "receive_from_bridge",
+          hash: cleanBridgeHash,
+        },
+        args
+      )
+    );
+
+    // Sign deploy
+    const signedDeploy = deploy.sign([operatorKeys]);
+
+    console.log(`[Casper] 📤 Sending deploy to network...`);
+
+    // Send to network
+    const deployHash = await rpcClient.deploy(signedDeploy);
+    
+    console.log(`[Casper] ✅ Deploy sent successfully!`);
+    console.log(`[Casper] 📋 Deploy Hash: ${deployHash}`);
+    console.log(`[Casper] 🔍 Check status: ${CONFIG.CASPER.NODE}/deploy/${deployHash}`);
+    
+    return deployHash;
+    
+  } catch (err) {
+    console.error(`[Casper] ❌ Deploy failed:`, err);
+    throw err;
+  }
+}
