@@ -3,3 +3,6 @@ fqn = "cspr_contract::AnchoreAMM"
 
 [[contracts]]
 fqn = "cspr_contract::AnchoreBridge"
+
+[[contracts]]
+fqn = "cspr_contract::MockToken"
