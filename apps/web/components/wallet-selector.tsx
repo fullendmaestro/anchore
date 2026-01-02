@@ -3,7 +3,7 @@
 import { Copy, LogOut, ExternalLink, Check } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+// import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Button } from "@anchore/ui/components/button";
 import {
   Dialog,
@@ -106,7 +106,7 @@ function ConnectWalletDialog({ close }: ConnectWalletDialogProps) {
             </div>
           </div>
 
-          <ConnectButton.Custom>
+          {/* <ConnectButton.Custom>
             {({
               account,
               chain,
@@ -175,7 +175,7 @@ function ConnectWalletDialog({ close }: ConnectWalletDialogProps) {
                 </div>
               );
             }}
-          </ConnectButton.Custom>
+          </ConnectButton.Custom> */}
         </div>
 
         <div className="relative">

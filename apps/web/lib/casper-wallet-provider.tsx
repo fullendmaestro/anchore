@@ -70,7 +70,7 @@ export function CasperWalletProvider({
       // Calculate account hash
       if (activeKey) {
         const publicKeyObj = PublicKey.fromHex(activeKey);
-        const accHash = publicKeyObj.toAccountHashStr();
+        const accHash = publicKeyObj.accountHash().toPrefixedString();
         setAccountHash(accHash);
       }
     } catch (error: any) {
