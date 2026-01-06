@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect } from "react";
-import { ArrowDownUp, Clock, DollarSign, ArrowRightLeft } from "lucide-react";
 
 import {
   Card,
@@ -13,13 +12,14 @@ import {
   CardTitle,
 } from "@anchore/ui/components/card";
 import { Button } from "@anchore/ui/components/button";
-import { Badge } from "@anchore/ui/components/badge";
 import { NumericInput } from "./numeric-input";
 import { SelectTokenModal } from "./select-token-modal";
 import { SelectedTokenButton } from "./selected-token-button";
-import { CASPER_TOKENS, CasperToken } from "@/data/casper-tokens";
+import { TOKENS } from "@/data";
+import { TokenBase } from "@/data/types";
+
 import { useCasperWallet } from "@/lib/casper-wallet-provider";
-import { useCasperContracts } from "@/hooks/use-casper-contracts";
+import { useSwap } from "@/hooks/swap/use-swap";
 import { toast } from "sonner";
 
 const formSchema = z.object({
@@ -47,20 +47,18 @@ interface Quote {
 
 export function BridgingCard() {
   const { isConnected, publicKey } = useCasperWallet();
-  const { swapTokens, isLoading } = useCasperContracts();
+  const { mutateAsync: prepareSwap, isPending: isPreparingSwap } = useSwap();
 
-  const [sellToken, setSellToken] = useState<CasperToken | null>(
-    CASPER_TOKENS[0] ?? null
+  const [sellToken, setSellToken] = useState<TokenBase | null>(
+    TOKENS[0] ?? null
   );
-  const [buyToken, setBuyToken] = useState<CasperToken | null>(
-    CASPER_TOKENS[1] ?? null
-  );
+  const [buyToken, setBuyToken] = useState<TokenBase | null>(TOKENS[1] ?? null);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [modalState, setModalState] = useState<{
-    screen: "select-from-token" | "select-to-token";
+    screen: "select-sell-token" | "select-buy-token";
     isOpen: boolean;
   }>({
-    screen: "select-from-token",
+    screen: "select-sell-token",
     isOpen: false,
   });
 
@@ -68,6 +66,10 @@ export function BridgingCard() {
     resolver: zodResolver(formSchema),
     defaultValues: { amount: "" },
   });
+
+  // Compute derived values
+  const isCrossChain = sellToken?.chainId !== buyToken?.chainId;
+  const sellBalance = "0.00"; // TODO: Fetch from wallet
 
   // Generate quote when tokens or amount change (mock for now)
   useEffect(() => {
@@ -114,29 +116,25 @@ export function BridgingCard() {
     }
 
     try {
-      // Convert to motes (9 decimals)
-      const amountInMotes = (parseFloat(data.amount) * 1e9).toString();
-      const minAmountOutMotes = (
-        parseFloat(quote.buyAmount) *
-        0.99 *
-        1e9
-      ).toString(); // 1% slippage tolerance
+      const prepared = await prepareSwap({
+        sellToken,
+        buyToken,
+        amountIn: data.amount,
+        expectedAmountOut: quote.buyAmount,
+        slippageBps: 100,
+      });
 
-      const deployHash = await swapTokens(
-        sellToken.hash,
-        buyToken.hash,
-        amountInMotes,
-        minAmountOutMotes
-      );
+      if (!prepared) return; // toast already shown by hook
 
       toast.success(
         <div>
-          <p className="font-semibold">Swap initiated!</p>
-          <p className="text-xs mt-1">Deploy: {deployHash.slice(0, 16)}...</p>
+          <p className="font-semibold">Swap prepared</p>
+          <p className="text-xs mt-1">
+            Pool: {prepared.poolAddress.slice(0, 10)}...
+          </p>
         </div>
       );
 
-      // Reset form
       form.reset();
       setQuote(null);
     } catch (error: any) {
@@ -149,24 +147,17 @@ export function BridgingCard() {
     <>
       <Card className="max-w-lg mx-auto">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Swap on Casper</span>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-[#FF0011]" />
-              Casper AMM
-            </Badge>
-          </CardTitle>
+          <CardTitle>Swap on Casper</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Sell Section */}
             <div className="space-y-2">
-              <div className="text-sm text-muted-foreground">You Pay</div>
               <div className="bg-secondary/50 rounded-xl p-4 space-y-4">
                 <SelectedTokenButton
                   selectedToken={sellToken}
                   onSelectToken={() =>
-                    setModalState({ screen: "select-from-token", isOpen: true })
+                    setModalState({ screen: "select-sell-token", isOpen: true })
                   }
                 />
 
@@ -185,7 +176,7 @@ export function BridgingCard() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={!isConnected}
+                    onClick={() => form.setValue("amount", sellBalance)}
                   >
                     Max
                   </Button>
@@ -193,33 +184,27 @@ export function BridgingCard() {
 
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-muted-foreground">
-                    Balance: 0.0000 {sellToken?.symbol}
+                    ≈ $
+                    {(
+                      parseFloat(form.watch("amount") || "0") *
+                      (sellToken ? 1 : 0)
+                    ).toFixed(2)}{" "}
+                    USD
                   </div>
+                  <span className="text-xs text-muted-foreground">
+                    Balance: {sellBalance}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Swap Button */}
-            <div className="flex justify-center -my-2 relative z-10">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="rounded-full border-4 border-background"
-                onClick={handleSwapTokens}
-              >
-                <ArrowDownUp className="h-4 w-4" />
-              </Button>
-            </div>
-
             {/* Buy Section */}
             <div className="space-y-2">
-              <div className="text-sm text-muted-foreground">You Receive</div>
               <div className="bg-muted/50 border border-border/50 rounded-xl p-4 transition-all hover:border-primary/50">
                 <SelectedTokenButton
                   selectedToken={buyToken}
                   onSelectToken={() =>
-                    setModalState({ screen: "select-to-token", isOpen: true })
+                    setModalState({ screen: "select-buy-token", isOpen: true })
                   }
                 />
 
@@ -228,80 +213,32 @@ export function BridgingCard() {
                     <div className="text-2xl font-bold text-primary">
                       {quote.buyAmount}
                     </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Balance: 0.0000 {buyToken?.symbol}
+                    <div className="text-sm text-muted-foreground">
+                      ≈ $
+                      {(
+                        parseFloat(quote.buyAmount) * (buyToken ? 1 : 0)
+                      ).toFixed(2)}{" "}
+                      USD
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Quote Details */}
-            {quote && (
-              <div className="border-t border-dashed border-border pt-4 space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <DollarSign className="w-3 h-3" />
-                    Fee (0.3%)
-                  </span>
-                  <span className="font-medium">
-                    {quote.fee} {sellToken?.symbol}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    Est. Time
-                  </span>
-                  <span className="font-medium text-green-500">
-                    ~{quote.estimatedTime}s
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Rate</span>
-                  <span className="font-medium">
-                    1 {sellToken?.symbol} = {quote.rate.toFixed(4)}{" "}
-                    {buyToken?.symbol}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Price Impact</span>
-                  <span
-                    className={`font-medium ${quote.priceImpact > 3 ? "text-destructive" : "text-green-500"}`}
-                  >
-                    {quote.priceImpact.toFixed(2)}%
-                  </span>
-                </div>
-              </div>
-            )}
-
             <Button
               type="submit"
               className="w-full"
               disabled={
-                // !isConnected ||
-                // !sellToken ||
-                // !buyToken ||
-                // !form.formState.isValid ||
-                // !quote ||
-                isLoading
+                !sellToken || !buyToken || !quote || isPreparingSwap
+                // || !form.formState.isValid
               }
             >
-              {!isConnected
-                ? "Connect Casper Wallet"
-                : isLoading
-                  ? "Swapping..."
-                  : "Swap Tokens"}
+              {isPreparingSwap
+                ? "Preparing swap..."
+                : isCrossChain
+                  ? "Bridge Asset"
+                  : "Swap Asset"}
             </Button>
-
-            {!isConnected && (
-              <div className="text-center text-xs text-muted-foreground">
-                Connect your Casper wallet to start swapping
-              </div>
-            )}
           </form>
         </CardContent>
       </Card>
@@ -309,24 +246,24 @@ export function BridgingCard() {
       <SelectTokenModal
         modalState={modalState}
         selectedToken={
-          modalState.screen === "select-from-token" ? sellToken : buyToken
+          modalState.screen === "select-sell-token" ? sellToken : buyToken
         }
         onSelectToken={(token) => {
-          if (modalState.screen === "select-from-token") {
+          if (modalState.screen === "select-sell-token") {
             setSellToken(token);
             // Auto-select the other token if same
-            if (buyToken?.hash === token.hash) {
-              const otherToken = CASPER_TOKENS.find(
-                (t) => t.hash !== token.hash
+            if (buyToken?.address === token.address) {
+              const otherToken = TOKENS.find(
+                (t) => t.address !== token.address
               );
               setBuyToken(otherToken || null);
             }
           } else {
             setBuyToken(token);
             // Auto-select the other token if same
-            if (sellToken?.hash === token.hash) {
-              const otherToken = CASPER_TOKENS.find(
-                (t) => t.hash !== token.hash
+            if (sellToken?.address === token.address) {
+              const otherToken = TOKENS.find(
+                (t) => t.address !== token.address
               );
               setSellToken(otherToken || null);
             }

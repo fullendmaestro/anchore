@@ -1,10 +1,10 @@
 import { Button } from "@anchore/ui/components/button";
 import { ChevronDownIcon } from "lucide-react";
-import { CasperToken } from "@/data/casper-tokens";
-import Image from "next/image";
+import { Chain, TokenBase } from "@/data/types";
+import { getChainById } from "@/data";
 
 interface SelectedTokenButtonProps {
-  selectedToken: CasperToken | null;
+  selectedToken: TokenBase | null;
   onSelectToken: () => void;
   isLoading?: boolean;
 }
@@ -14,6 +14,7 @@ export function SelectedTokenButton({
   onSelectToken,
   isLoading,
 }: SelectedTokenButtonProps) {
+  const selectedChain = getChainById(selectedToken?.chainId || "");
   return (
     <Button
       variant="ghost"
@@ -22,34 +23,43 @@ export function SelectedTokenButton({
       disabled={isLoading}
     >
       <div className="flex items-center gap-3">
+        {/* TokenBase and Chain Icons */}
         <div className="relative">
-          {selectedToken?.icon ? (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-              <span className="text-lg font-bold">{selectedToken.symbol[0]}</span>
-            </div>
+          {/* TokenBase Icon */}
+          {selectedToken?.logoURI ? (
+            <img
+              src={selectedToken.logoURI}
+              alt={selectedToken.symbol}
+              className="w-10 h-10 rounded-full"
+            />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-400" />
           )}
-          
-          {/* Casper Network Badge */}
-          {selectedToken && (
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-background rounded-full p-0.5 flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-[#FF0011] flex items-center justify-center">
-                <span className="text-[8px] text-white font-bold">C</span>
-              </div>
+
+          {/* Chain Icon */}
+          {selectedChain?.icon && (
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-background rounded-full p-0.5">
+              <img
+                src={selectedChain?.icon}
+                alt={selectedChain.name}
+                className="w-full h-full rounded-full"
+              />
             </div>
           )}
         </div>
 
+        {/* TokenBase Info */}
         <div className="text-left">
           {selectedToken ? (
             <>
               <div className="font-medium text-sm">{selectedToken.symbol}</div>
-              <div className="text-xs text-muted-foreground">Casper Network</div>
+              <div className="text-xs text-muted-foreground">
+                {selectedChain?.name || "Select Chain"}
+              </div>
             </>
           ) : (
             <>
-              <div className="font-medium text-sm">Select Token</div>
+              <div className="font-medium text-sm">Select TokenBase</div>
               <div className="text-xs text-muted-foreground">Required</div>
             </>
           )}
