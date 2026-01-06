@@ -128,9 +128,9 @@ export function BridgingCard() {
 
       toast.success(
         <div>
-          <p className="font-semibold">Swap prepared</p>
+          <p className="font-semibold">Swap Success</p>
           <p className="text-xs mt-1">
-            Pool: {prepared.poolAddress.slice(0, 10)}...
+            Pool: {prepared.deployHash.slice(0, 10)}...
           </p>
         </div>
       );
