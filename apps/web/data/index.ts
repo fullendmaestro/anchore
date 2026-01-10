@@ -21,7 +21,7 @@ export const CHAINS: Chain[] = [
 export const TOKENS: TokenBase[] = [
   // Casper Testnet Tokens (deployment hashes)
   {
-    address: "ce4cd13f6a7c5b476e8b274185c7220d008bfde349ad7bde7d501e65d82378fe",
+    address: "7a1e4d2f2941dfe49694c33f9bcbdf1d72a584d0cf8044a99a9b49e883804ea9",
     symbol: "USDC",
     name: "USD Coin",
     decimals: 6,
@@ -31,7 +31,7 @@ export const TOKENS: TokenBase[] = [
     coinKey: "usd-coin",
   },
   {
-    address: "e49d542ac3a14e2646f68abf3f5ea4f52b0ba55a67b2346f99e80a6abbad8a42",
+    address: "398e4293208c2a471c09a21f95105f0b642bad1f100639308ed7648ecc1c87a9",
     symbol: "USDT",
     name: "Tether USD",
     decimals: 6,
@@ -41,7 +41,7 @@ export const TOKENS: TokenBase[] = [
     coinKey: "tether",
   },
   {
-    address: "116b474729c4465dad00d160c5aa7300e9aa9af9cbc10c64cbecf1962e5a9d93",
+    address: "b19b5fce8351a54c061c9e139e4a4f38186ff8fec069380248c6a76d165ae7f6",
     symbol: "WBTC",
     name: "Wrapped Bitcoin",
     decimals: 8,
@@ -51,7 +51,7 @@ export const TOKENS: TokenBase[] = [
     coinKey: "wrapped-bitcoin",
   },
   {
-    address: "1fb34dfa7457cf52966bbeb55851e13a279f385fed8dfaf64a5f952c5371a258",
+    address: "c02606904cdcc86d6c41c769cf0de00dae5999dead3dcf5e05f51e3bf434ab31",
     symbol: "DAI",
     name: "Dai Stablecoin",
     decimals: 18,
@@ -61,7 +61,7 @@ export const TOKENS: TokenBase[] = [
     coinKey: "dai",
   },
   {
-    address: "034b78040da89a7087fd353f409e6244fe4d18915efd1cefce86cc3c986b9125",
+    address: "969b0bf0a8147a4070dcb7211e8d317ac835ba59104a87d11cef72366149d206",
     symbol: "WETH",
     name: "Wrapped Ether",
     decimals: 18,

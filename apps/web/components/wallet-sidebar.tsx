@@ -9,12 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@anchore/ui/components/sheet";
-import {
-  X,
-  Wallet,
-  LogOut, // Changed to match the exit icon in the image
-  AlertCircle,
-} from "lucide-react";
+import { X, Wallet, LogOut, AlertCircle } from "lucide-react";
 import {
   useAccount,
   useConnect,
@@ -32,7 +27,6 @@ interface WalletSidebarProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Reusable component to match the card style in the images
 const ConnectedWalletCard = ({
   address,
   networkName,
@@ -95,14 +89,12 @@ const ConnectedWalletCard = ({
 );
 
 export function WalletSidebar({ open, onOpenChange }: WalletSidebarProps) {
-  // EVM wallet state
   const { address: evmAddress, isConnected: evmConnected } = useAccount();
   const { connect: evmConnect, connectors } = useConnect();
   const { disconnect: evmDisconnect } = useDisconnect();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
 
-  // Casper wallet state
   const {
     publicKey: casperPublicKey,
     isConnected: casperConnected,
@@ -200,7 +192,7 @@ export function WalletSidebar({ open, onOpenChange }: WalletSidebarProps) {
                 iconSrc="/icons/networks/ethereum.svg"
                 onDisconnect={() => evmDisconnect()}
                 isError={isUnsupportedEvm}
-                className="col-span-1 px-2" // Tighter padding for grid
+                className="col-span-1 px-2"
               />
               <ConnectedWalletCard
                 address={casperPublicKey ?? undefined}

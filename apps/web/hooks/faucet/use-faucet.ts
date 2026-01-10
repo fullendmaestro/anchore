@@ -1,76 +1,39 @@
 "use client";
 
-import { CASPER_CHAIN_ID } from "@/data";
-import { CASPER_SWAP_ROUTES } from "@/data/swap-and-bridge-routes";
+import { CASPER_CHAIN_ID, TOKENS } from "@/data";
 import { TokenBase } from "@/data/types";
-import { CASPER_CONFIG } from "@/lib/casper-config";
 import { useCasperWallet } from "@/lib/casper-wallet-provider";
 import { useState } from "react";
 import { toast } from "sonner";
-import { prepareSwapTransaction } from "./prepare-swap-transaction";
+import { prepareMintTransaction } from "./prepare-mint-transaction";
 import { CLPublicKey, DeployUtil } from "casper-js-sdk";
+
 import { submitDeployViaProxy } from "../deploy-utils";
 
-type SwapParams = {
-  sellToken: TokenBase;
-  buyToken: TokenBase;
-  amountIn: string;
-  expectedAmountOut?: string;
-  slippageBps?: number;
-};
-
-type SwapExecutionResult = {
-  deployHash: string;
-  prepared: DeployUtil.Deploy;
-};
-
-interface SwapResult {
-  data: SwapExecutionResult | null;
+interface FaucetResult {
+  data: { deployHash: string } | null;
   loading: boolean;
   cancelled: boolean;
   error: boolean;
 }
 
-const findPoolAddress = (sellTokenAddress: string, buyTokenAddress: string) =>
-  CASPER_SWAP_ROUTES.find(
-    (route) =>
-      (route.token0Address === sellTokenAddress &&
-        route.token1Address === buyTokenAddress) ||
-      (route.token1Address === sellTokenAddress &&
-        route.token0Address === buyTokenAddress)
-  )?.poolAddress;
-
-export const useSwap = () => {
+export const useFaucet = () => {
   const { publicKey, provider } = useCasperWallet();
-  const [swapResult, setSwapResult] = useState<SwapResult>({
+  const [faucetResult, setFaucetResult] = useState<FaucetResult>({
     data: null,
     loading: false,
     cancelled: false,
     error: false,
   });
 
-  const executeSwap = async (params: SwapParams) => {
-    const { sellToken, buyToken, amountIn, expectedAmountOut, slippageBps } =
-      params;
-
-    const isCasperPair =
-      sellToken.chainId === CASPER_CHAIN_ID &&
-      buyToken.chainId === CASPER_CHAIN_ID;
-
-    if (!isCasperPair) {
-      toast.info("Bridging coming soon");
-      return;
-    }
-
-    const poolAddress = findPoolAddress(sellToken.address, buyToken.address);
-
-    if (!poolAddress) {
-      toast.error("Route not found for selected pair");
+  const requestTokens = async (token: TokenBase, amount: string) => {
+    if (token.chainId !== CASPER_CHAIN_ID) {
+      toast.error("Only Casper testnet tokens are supported");
       return;
     }
 
     if (!publicKey) {
-      toast.error("Connect Casper wallet to submit swaps");
+      toast.error("Connect Casper wallet to request tokens");
       return;
     }
 
@@ -80,27 +43,26 @@ export const useSwap = () => {
     }
 
     try {
-      console.log("Preparing swap transaction...");
+      console.log("Preparing mint transaction...");
 
-      // Convert publicKey to account hash for recipient address
-      const pubKey = CLPublicKey.fromHex(publicKey.toString());
+      // Parse public key ONCE and reuse the instance
+      const pubKeyHex = publicKey.toString();
+      const pubKey = CLPublicKey.fromHex(pubKeyHex);
       const accountHashBytes = pubKey.toAccountHash();
-      const accountHash = Buffer.from(accountHashBytes).toString("hex");
+      const recipientHash = Buffer.from(accountHashBytes).toString("hex");
 
-      // Prepare deploy
-      const deploy = await prepareSwapTransaction(
+      const deploy = await prepareMintTransaction(
         {
-          amount_in: amountIn,
-          token_in: sellToken.address,
-          to: accountHash,
+          amount,
+          to: recipientHash,
         },
         pubKey,
-        poolAddress
+        token.address
       );
 
-      console.log("Prepared deploy:", deploy);
+      console.log("Prepared mint deploy:", deploy);
 
-      setSwapResult({
+      setFaucetResult({
         data: null,
         loading: true,
         cancelled: false,
@@ -109,16 +71,14 @@ export const useSwap = () => {
 
       // Convert deploy to JSON for wallet signing
       const deployJson = DeployUtil.deployToJson(deploy);
-
-      // Sign with wallet provider
       toast.info("Please sign the transaction in your wallet");
       const signResult = await provider.sign(
         JSON.stringify(deployJson),
-        publicKey.toString()
+        pubKeyHex
       );
 
       if (signResult.cancelled) {
-        setSwapResult({
+        setFaucetResult({
           data: null,
           loading: false,
           cancelled: true,
@@ -128,7 +88,6 @@ export const useSwap = () => {
         return;
       }
 
-      // Attach wallet signature to deploy JSON (v2 flow)
       if (!signResult.signature) {
         throw new Error("Wallet did not return a signature");
       }
@@ -153,8 +112,7 @@ export const useSwap = () => {
         return Buffer.from(bytes).toString("hex");
       };
 
-      const signerHex = publicKey.toString();
-      const algTag = signerHex.slice(0, 2); // '01' for Ed25519, '02' for Secp256k1
+      const algTag = pubKeyHex.slice(0, 2);
       const sigHex =
         typeof signResult.signature === "string"
           ? signResult.signature.startsWith("01") ||
@@ -163,8 +121,7 @@ export const useSwap = () => {
             : algTag + signResult.signature
           : algTag + toHex(signResult.signature as any);
 
-      // Merge approval into correct location.
-      // deployJson may be either {deploy: {...}} or the flat object itself.
+      // Merge approval into the correct object: unwrap if deployJson has {deploy: {...}}
       let signedDeployJson: any;
       if ((deployJson as any).deploy) {
         const inner = (deployJson as any).deploy;
@@ -172,7 +129,7 @@ export const useSwap = () => {
           ...inner,
           approvals: [
             ...(inner.approvals || []),
-            { signer: signerHex, signature: sigHex },
+            { signer: pubKeyHex, signature: sigHex },
           ],
         };
       } else {
@@ -180,38 +137,40 @@ export const useSwap = () => {
           ...deployJson,
           approvals: [
             ...((deployJson as any).approvals || []),
-            { signer: signerHex, signature: sigHex },
+            { signer: pubKeyHex, signature: sigHex },
           ],
         };
       }
 
       toast.info("Submitting transaction to network...");
-      console.log("Signed deploy JSON:", signedDeployJson);
-
       const result = await submitDeployViaProxy(signedDeployJson);
+
       const deployHash = result.deploy_hash;
 
-      setSwapResult({
-        data: { deployHash, prepared: deploy },
+      setFaucetResult({
+        data: { deployHash },
         loading: false,
         cancelled: false,
         error: false,
       });
 
-      toast.success(`Swap transaction submitted: ${deployHash}`);
+      toast.success(`Tokens requested successfully: ${deployHash}`);
     } catch (error) {
-      setSwapResult({
+      console.error("Faucet error:", error);
+      setFaucetResult({
         data: null,
         loading: false,
         cancelled: false,
         error: true,
       });
-      toast.error(error instanceof Error ? error.message : "Swap failed");
+      toast.error(
+        error instanceof Error ? error.message : "Faucet request failed"
+      );
     }
   };
 
-  const resetSwap = () => {
-    setSwapResult({
+  const resetFaucet = () => {
+    setFaucetResult({
       data: null,
       loading: false,
       cancelled: false,
@@ -220,11 +179,11 @@ export const useSwap = () => {
   };
 
   return {
-    executeSwap,
-    resetSwap,
-    swapResult,
-    isLoading: swapResult.loading,
-    isError: swapResult.error,
-    isCancelled: swapResult.cancelled,
+    requestTokens,
+    resetFaucet,
+    faucetResult,
+    isLoading: faucetResult.loading,
+    isError: faucetResult.error,
+    isCancelled: faucetResult.cancelled,
   };
 };

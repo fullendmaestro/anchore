@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-// import { Header } from "@/components/header";
+import { Header } from "./header";
 
 export default function RootLayout({
   children,
@@ -8,7 +8,7 @@ export default function RootLayout({
 }>) {
   return (
     <div className="relative min-h-screen">
-      {/* <Header /> */}
+      <Header />
       <div className="isolate">{children}</div>
     </div>
   );

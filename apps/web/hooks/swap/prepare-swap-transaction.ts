@@ -1,96 +1,57 @@
-import { Args, CLValue } from "casper-js-sdk";
-import { TokenBase } from "@/data/types";
+import {
+  CLPublicKey,
+  CLValueBuilder,
+  DeployUtil,
+  RuntimeArgs,
+} from "casper-js-sdk";
+import { CASPER_CONFIG } from "../../lib/casper-config";
+import { resolveContractHash } from "../../lib/casper-contracts";
 
-export type PreparedSwapTransaction = {
-  poolAddress: string;
-  chainId: string;
-  tokenIn: { address: string; decimals: number };
-  tokenOut: { address: string; decimals: number };
-  amountIn: string; // base units
-  minAmountOut: string; // base units after slippage
-  slippageBps: number;
-};
+// v2 implementation builds deploys directly with DeployUtil.
 
-type PrepareSwapTransactionParams = {
-  poolAddress: string;
-  sellToken: TokenBase;
-  buyToken: TokenBase;
-  amountIn: string; // human-readable
-  expectedAmountOut?: string; // human-readable
-  slippageBps?: number; // basis points
-};
+export const prepareSwapTransaction = async (
+  params: {
+    amount_in: string; // Amount in smallest unit (e.g., motes for CSPR)
+    token_in: string; // Hash of the input token (with or without hash-)
+    to: string; // Recipient account-hash hex (with or without hash-)
+  },
+  accountPublicKey: CLPublicKey,
+  ammHash: string
+): Promise<DeployUtil.Deploy> => {
+  const stripHashPrefix = (hash: string): string =>
+    hash.startsWith("hash-") ? hash.slice(5) : hash;
 
-const toBaseUnits = (amount: string, decimals: number): string => {
-  const [whole = "0", fraction = ""] = amount.split(".");
-  const normalizedFraction = (fraction + "0".repeat(decimals)).slice(
-    0,
-    decimals
-  );
-  const combined = `${whole}${normalizedFraction}`.replace(/^0+(?=\d)/, "");
-  return combined || "0";
-};
+  const tokenInHex = stripHashPrefix(params.token_in);
+  const toHex = stripHashPrefix(params.to);
+  const ammHex = stripHashPrefix(ammHash);
 
-const applySlippage = (amount: string | undefined, slippageBps: number) => {
-  const numericAmount = Number(amount ?? "0");
-  if (Number.isNaN(numericAmount) || numericAmount <= 0) return "0";
-  const adjusted = numericAmount * (1 - slippageBps / 10_000);
-  return adjusted.toString();
-};
+  const tokenInBytes = Uint8Array.from(Buffer.from(tokenInHex, "hex"));
+  const toBytes = Uint8Array.from(Buffer.from(toHex, "hex"));
+  const resolvedAmmHex = await resolveContractHash(ammHex).catch(() => ammHex);
+  const ammHashBytes = Uint8Array.from(Buffer.from(resolvedAmmHex, "hex"));
 
-const stripHashPrefix = (hash: string) =>
-  hash.startsWith("hash-") ? hash.slice(5) : hash;
+  const runtimeArgs = RuntimeArgs.fromMap({
+    amount_in: CLValueBuilder.u256(params.amount_in),
+    token_in: CLValueBuilder.byteArray(tokenInBytes),
+    to: CLValueBuilder.byteArray(toBytes),
+  });
 
-const hexToBytes = (hex: string): Uint8Array => {
-  const normalized = stripHashPrefix(hex).trim();
-  if (!/^[0-9a-fA-F]+$/.test(normalized)) {
-    throw new Error("Invalid Casper hash format");
-  }
-  if (normalized.length % 2 !== 0) {
-    throw new Error("Casper hash must have an even length");
-  }
-
-  const pairs = normalized.match(/.{1,2}/g) ?? [];
-  const bytes = pairs.map((pair) => Number.parseInt(pair, 16));
-  return Uint8Array.from(bytes);
-};
-
-export const prepareSwapTransaction = (
-  params: PrepareSwapTransactionParams
-): PreparedSwapTransaction => {
-  const slippageBps = params.slippageBps ?? 100; // default 1%
-  const minAmountOutHuman = applySlippage(
-    params.expectedAmountOut,
-    slippageBps
+  const deployParams = new DeployUtil.DeployParams(
+    accountPublicKey,
+    CASPER_CONFIG.CHAIN_NAME,
+    1,
+    1800000
   );
 
-  return {
-    poolAddress: params.poolAddress,
-    chainId: params.sellToken.chainId,
-    tokenIn: {
-      address: params.sellToken.address,
-      decimals: params.sellToken.decimals,
-    },
-    tokenOut: {
-      address: params.buyToken.address,
-      decimals: params.buyToken.decimals,
-    },
-    amountIn: toBaseUnits(params.amountIn, params.sellToken.decimals),
-    minAmountOut: toBaseUnits(minAmountOutHuman, params.buyToken.decimals),
-    slippageBps,
-  };
-};
+  const session = DeployUtil.ExecutableDeployItem.newStoredContractByHash(
+    ammHashBytes,
+    "swap_exact_tokens",
+    runtimeArgs
+  );
 
-export const buildSwapRuntimeArgs = (
-  prepared: PreparedSwapTransaction
-): Args => {
-  const argsMap: Record<string, CLValue> = {
-    token_in: CLValue.newCLByteArray(hexToBytes(prepared.tokenIn.address)),
-    token_out: CLValue.newCLByteArray(hexToBytes(prepared.tokenOut.address)),
-    amount_in: CLValue.newCLUInt256(BigInt(prepared.amountIn)),
-    min_amount_out: CLValue.newCLUInt256(BigInt(prepared.minAmountOut)),
-  };
+  const payment = DeployUtil.standardPayment("3000000000");
 
-  return Args.fromMap(argsMap);
+  return DeployUtil.makeDeploy(deployParams, session, payment);
 };
 
 export const ensureHashPrefix = (hash: string): string =>

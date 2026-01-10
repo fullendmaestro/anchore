@@ -34,7 +34,7 @@ interface CasperWalletProvider {
    * Sign a deploy
    * @param deployJson - JSON-stringified deploy
    * @param signingPublicKeyHex - Public key to sign with
-   * @returns Promise<{ signature: string, cancelled: boolean }>
+   * @returns Promise<{ signature: string, cancelled: boolean, signedDeploy?: string }>
    */
   sign(
     deployJson: string,
@@ -42,6 +42,7 @@ interface CasperWalletProvider {
   ): Promise<{
     signature: string;
     cancelled: boolean;
+    signedDeploy?: string;
   }>;
 
   /**

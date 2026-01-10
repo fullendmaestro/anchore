@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  CsprClickInitOptions,
+  CONTENT_MODE,
+} from "@make-software/csprclick-core-types";
+
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,6 +22,20 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+const clickOptions: CsprClickInitOptions = {
+  appName: "app",
+  contentMode: CONTENT_MODE.IFRAME,
+  providers: [
+    "casper-wallet",
+    "ledger",
+    "torus-wallet",
+    "casperdash",
+    "metamask-snap",
+    "casper-signer",
+  ],
+  appId: "sds",
+};
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

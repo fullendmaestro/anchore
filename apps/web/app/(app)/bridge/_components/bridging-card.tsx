@@ -47,7 +47,7 @@ interface Quote {
 
 export function BridgingCard() {
   const { isConnected, publicKey } = useCasperWallet();
-  const { mutateAsync: prepareSwap, isPending: isPreparingSwap } = useSwap();
+  const { executeSwap, swapResult, isLoading, resetSwap } = useSwap();
 
   const [sellToken, setSellToken] = useState<TokenBase | null>(
     TOKENS[0] ?? null
@@ -115,33 +115,25 @@ export function BridgingCard() {
       return;
     }
 
-    try {
-      const prepared = await prepareSwap({
-        sellToken,
-        buyToken,
-        amountIn: data.amount,
-        expectedAmountOut: quote.buyAmount,
-        slippageBps: 100,
-      });
+    await executeSwap({
+      sellToken,
+      buyToken,
+      amountIn: data.amount,
+      expectedAmountOut: quote.buyAmount,
+      slippageBps: 100,
+    });
+  };
 
-      if (!prepared) return; // toast already shown by hook
-
-      toast.success(
-        <div>
-          <p className="font-semibold">Swap Success</p>
-          <p className="text-xs mt-1">
-            Pool: {prepared.deployHash.slice(0, 10)}...
-          </p>
-        </div>
-      );
-
+  // Reset form after successful swap
+  useEffect(() => {
+    if (swapResult.data) {
       form.reset();
       setQuote(null);
-    } catch (error: any) {
-      toast.error("Swap failed: " + (error.message || "Unknown error"));
-      console.error("Swap error:", error);
+      // Auto-reset after showing success
+      const timer = setTimeout(() => resetSwap(), 3000);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [swapResult.data, form, resetSwap]);
 
   return (
     <>
@@ -229,12 +221,12 @@ export function BridgingCard() {
               type="submit"
               className="w-full"
               disabled={
-                !sellToken || !buyToken || !quote || isPreparingSwap
+                !sellToken || !buyToken || !quote || isLoading
                 // || !form.formState.isValid
               }
             >
-              {isPreparingSwap
-                ? "Preparing swap..."
+              {isLoading
+                ? "Processing swap..."
                 : isCrossChain
                   ? "Bridge Asset"
                   : "Swap Asset"}
