@@ -1,5 +1,25 @@
 include .env
 
+# Build with Odra
+build:
+	@echo "Building contracts with Odra..."
+	cargo odra build
+
+# Deploy all tokens and AMM pools using the deployment script
+deploy-all:
+	@echo "Deploying all tokens and AMM pools..."
+	cargo run --bin anchore_deploy -- deploy
+
+# Deploy to testnet
+deploy-testnet:
+	@echo "Deploying to Casper Testnet..."
+	cargo run --bin anchore_deploy -- deploy --network testnet
+
+# Deploy to mainnet
+deploy-mainnet:
+	@echo "⚠️  Deploying to Casper MAINNET..."
+	cargo run --bin anchore_deploy -- deploy --network mainnet
+
 # WASM paths
 BRIDGE_WASM=./wasm/AnchoreBridge.wasm
 MOCK_TOKEN_WASM=./wasm/MockToken.wasm

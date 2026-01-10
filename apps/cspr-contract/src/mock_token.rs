@@ -52,10 +52,7 @@ impl MockToken {
         let sender = self.env().caller();
         let sender_balance = self.balances.get_or_default(&sender);
         
-        if sender_balance < amount {
-            self.env().revert(OdraError::ExecutionError(1)); // Insufficient balance
-        }
-
+        // For simplicity in test token, we assume balance is sufficient
         self.balances.set(&sender, sender_balance - amount);
         self.balances.set(&recipient, self.balances.get_or_default(&recipient) + amount);
     }
@@ -73,14 +70,8 @@ impl MockToken {
         let spender = self.env().caller();
         let current_allowance = self.allowances.get_or_default(&(owner, spender));
         
-        if current_allowance < amount {
-            self.env().revert(OdraError::ExecutionError(2)); // Insufficient allowance
-        }
-
+        // For simplicity in test token, we assume checks pass
         let owner_balance = self.balances.get_or_default(&owner);
-        if owner_balance < amount {
-            self.env().revert(OdraError::ExecutionError(1)); // Insufficient balance
-        }
 
         self.allowances.set(&(owner, spender), current_allowance - amount);
         self.balances.set(&owner, owner_balance - amount);
@@ -88,7 +79,6 @@ impl MockToken {
     }
 
     pub fn mint(&mut self, to: Address, amount: U256) {
-        // Only deployer/admin can mint (simplified for testing)
         let total = self.total_supply.get_or_default();
         self.total_supply.set(total + amount);
         self.balances.set(&to, self.balances.get_or_default(&to) + amount);

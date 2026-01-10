@@ -31,6 +31,11 @@ name = "cspr_contract_cli"
 path = "bin/cli.rs"
 test = false
 
+[[bin]]
+name = "anchore_deploy"
+path = "bin/deploy.rs"
+test = false
+
 [profile.release]
 codegen-units = 1
 lto = true

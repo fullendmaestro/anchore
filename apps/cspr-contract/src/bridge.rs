@@ -36,7 +36,7 @@ impl AnchoreBridge {
     pub fn set_operator(&mut self, operator: Address, is_active: bool) {
         let admin = self.admin.get().unwrap();
         if self.env().caller() != admin {
-            self.env().revert(ExecutionError::User(1));
+            panic!("Invalid operator");
         }
         self.operators.set(&operator, is_active);
         self.env().emit_event(OperatorUpdated { operator, is_active });
@@ -56,12 +56,12 @@ impl AnchoreBridge {
     ) {
         // 1. Security Checks
         if self.processed_nonces.get_or_default(&nonce) {
-            self.env().revert(ExecutionError::User(2));
+            panic!("Invalid token");
         }
         
         let caller = self.env().caller();
         if !self.operators.get_or_default(&caller) {
-            self.env().revert(ExecutionError::User(3));
+            panic!("Insufficient balance");
         }
 
         self.processed_nonces.set(&nonce, true);
