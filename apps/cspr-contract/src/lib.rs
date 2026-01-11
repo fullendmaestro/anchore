@@ -3,12 +3,10 @@
 extern crate alloc;
 
 // Declare the modules
-pub mod amm;
-pub mod bridge;
+pub mod pool;
 pub mod events;
 pub mod mock_token;
 
 // Re-export main contract structs
-pub use amm::AnchoreAMM;
-pub use bridge::AnchoreBridge;
+pub use pool::AnchorePool;
 pub use mock_token::MockToken;

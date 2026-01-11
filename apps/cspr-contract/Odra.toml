@@ -1,8 +1,5 @@
 [[contracts]]
-fqn = "cspr_contract::AnchoreAMM"
-
-[[contracts]]
-fqn = "cspr_contract::AnchoreBridge"
+fqn = "cspr_contract::AnchorePool"
 
 [[contracts]]
 fqn = "cspr_contract::MockToken"

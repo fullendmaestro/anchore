@@ -1,86 +1,57 @@
 use odra::prelude::*;
 use odra::casper_types::U256;
+use odra_modules::cep18_token::Cep18;
 
-/// Simple CEP-18 compatible token for testing
+/// Standard CEP-18 token with public minting
+/// Uses odra_modules::cep18_token::Cep18 for full CEP-18 compliance
+/// Anyone can mint/burn tokens (no access control for testing/demo)
 #[odra::module]
 pub struct MockToken {
-    name: Var<String>,
-    symbol: Var<String>,
-    decimals: Var<u8>,
-    total_supply: Var<U256>,
-    balances: Mapping<Address, U256>,
-    allowances: Mapping<(Address, Address), U256>,
+    /// Internal CEP-18 implementation from odra_modules
+    token: SubModule<Cep18>,
 }
 
 #[odra::module]
 impl MockToken {
-    #[odra(init)]
+    /// Initialize a new mock token with CEP-18 standard
     pub fn init(&mut self, name: String, symbol: String, decimals: u8, initial_supply: U256) {
-        self.name.set(name);
-        self.symbol.set(symbol);
-        self.decimals.set(decimals);
-        self.total_supply.set(initial_supply);
-        
-        // Mint initial supply to deployer
-        let deployer = self.env().caller();
-        self.balances.set(&deployer, initial_supply);
+        // Initialize the internal CEP-18 module
+        self.token.init(symbol, name, decimals, initial_supply);
     }
 
-    // CEP-18 Standard Methods
+    // ============================================================
+    // PUBLIC MINTING/BURNING (Anyone can mint/burn for testing)
+    // ============================================================
+
+    /// Mint tokens to any address (public, no access control)
+    /// This allows anyone to mint tokens for testing purposes
+    pub fn mint(&mut self, recipient: &Address, amount: &U256) {
+        self.token.raw_mint(recipient, amount);
+    }
+
+    /// Burn tokens from any address (public, no access control)
+    /// This allows anyone to burn tokens for testing purposes
+    pub fn burn(&mut self, owner: &Address, amount: &U256) {
+        self.token.raw_burn(owner, amount);
+    }
+
+    // ============================================================
+    // CEP-18 Standard Methods (Delegated to internal module)
+    // ============================================================
     
-    pub fn name(&self) -> String {
-        self.name.get().unwrap_or_default()
-    }
-
-    pub fn symbol(&self) -> String {
-        self.symbol.get().unwrap_or_default()
-    }
-
-    pub fn decimals(&self) -> u8 {
-        self.decimals.get().unwrap_or(0)
-    }
-
-    pub fn total_supply(&self) -> U256 {
-        self.total_supply.get_or_default()
-    }
-
-    pub fn balance_of(&self, owner: Address) -> U256 {
-        self.balances.get_or_default(&owner)
-    }
-
-    pub fn transfer(&mut self, recipient: Address, amount: U256) {
-        let sender = self.env().caller();
-        let sender_balance = self.balances.get_or_default(&sender);
-        
-        // For simplicity in test token, we assume balance is sufficient
-        self.balances.set(&sender, sender_balance - amount);
-        self.balances.set(&recipient, self.balances.get_or_default(&recipient) + amount);
-    }
-
-    pub fn approve(&mut self, spender: Address, amount: U256) {
-        let owner = self.env().caller();
-        self.allowances.set(&(owner, spender), amount);
-    }
-
-    pub fn allowance(&self, owner: Address, spender: Address) -> U256 {
-        self.allowances.get_or_default(&(owner, spender))
-    }
-
-    pub fn transfer_from(&mut self, owner: Address, recipient: Address, amount: U256) {
-        let spender = self.env().caller();
-        let current_allowance = self.allowances.get_or_default(&(owner, spender));
-        
-        // For simplicity in test token, we assume checks pass
-        let owner_balance = self.balances.get_or_default(&owner);
-
-        self.allowances.set(&(owner, spender), current_allowance - amount);
-        self.balances.set(&owner, owner_balance - amount);
-        self.balances.set(&recipient, self.balances.get_or_default(&recipient) + amount);
-    }
-
-    pub fn mint(&mut self, to: Address, amount: U256) {
-        let total = self.total_supply.get_or_default();
-        self.total_supply.set(total + amount);
-        self.balances.set(&to, self.balances.get_or_default(&to) + amount);
+    delegate! {
+        to self.token {
+            fn name(&self) -> String;
+            fn symbol(&self) -> String;
+            fn decimals(&self) -> u8;
+            fn total_supply(&self) -> U256;
+            fn balance_of(&self, address: &Address) -> U256;
+            fn allowance(&self, owner: &Address, spender: &Address) -> U256;
+            fn approve(&mut self, spender: &Address, amount: &U256);
+            fn decrease_allowance(&mut self, spender: &Address, decr_by: &U256);
+            fn increase_allowance(&mut self, spender: &Address, inc_by: &U256);
+            fn transfer(&mut self, recipient: &Address, amount: &U256);
+            fn transfer_from(&mut self, owner: &Address, recipient: &Address, amount: &U256);
+        }
     }
 }

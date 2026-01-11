@@ -10,23 +10,19 @@ pub struct LiquidityAdded {
 }
 
 #[odra::event]
+pub struct LiquidityRemoved {
+    pub provider: Address,
+    pub amount_a: U256,
+    pub amount_b: U256,
+    pub liquidity: U256,
+}
+
+#[odra::event]
 pub struct Swap {
     pub sender: Address,
+    pub token_in: Address,
+    pub token_out: Address,
     pub amount_in: U256,
     pub amount_out: U256,
     pub to: Address,
-}
-
-#[odra::event]
-pub struct BridgeRelease {
-    pub recipient: Address,
-    pub amount: U256,
-    pub nonce: U256,
-    pub token: Address,
-}
-
-#[odra::event]
-pub struct OperatorUpdated {
-    pub operator: Address,
-    pub is_active: bool,
 }
