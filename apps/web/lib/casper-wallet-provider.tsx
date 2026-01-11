@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { CLPublicKey } from "casper-js-sdk";
+import { PublicKey } from "casper-js-sdk";
 
 interface CasperWalletContextType {
   publicKey: string | null;
@@ -69,8 +69,9 @@ export function CasperWalletProvider({
 
       // Calculate account hash
       if (activeKey) {
-        const publicKeyObj = CLPublicKey.fromHex(activeKey);
-        const accHash = publicKeyObj.toAccountHashStr();
+        const publicKeyObj = PublicKey.fromHex(activeKey);
+        const accHashObj = publicKeyObj.accountHash();
+        const accHash = accHashObj.toPrefixedString();
         setAccountHash(accHash);
       }
     } catch (error: any) {

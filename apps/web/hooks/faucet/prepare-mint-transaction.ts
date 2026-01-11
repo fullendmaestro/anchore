@@ -1,8 +1,16 @@
 import {
-  CLPublicKey,
-  CLValueBuilder,
-  DeployUtil,
-  RuntimeArgs,
+  PublicKey,
+  CLValue,
+  Deploy,
+  DeployHeader,
+  ExecutableDeployItem,
+  StoredVersionedContractByHash,
+  Args,
+  Duration,
+  Timestamp,
+  ContractPackageHash,
+  Key,
+  AccountHash,
 } from "casper-js-sdk";
 import { CASPER_CONFIG } from "../../lib/casper-config";
 
@@ -11,45 +19,44 @@ export const prepareMintTransaction = async (
     amount: string; // Amount in smallest unit
     to: string; // Recipient account-hash hex
   },
-  accountPublicKey: CLPublicKey,
+  accountPublicKey: PublicKey,
   tokenHash: string // This is the Contract Package Hash
-): Promise<DeployUtil.Deploy> => {
+): Promise<Deploy> => {
   const stripHashPrefix = (hash: string): string =>
     hash.startsWith("hash-") ? hash.slice(5) : hash;
 
   const toHex = stripHashPrefix(params.to);
   const tokenHex = stripHashPrefix(tokenHash);
 
-  // Prepare byte arrays
-  const toBytes = Uint8Array.from(Buffer.from(toHex, "hex"));
-  const tokenPackageHashBytes = Uint8Array.from(Buffer.from(tokenHex, "hex"));
-
   // Build a Key::Account from the account hash
-  const recipientKey = CLValueBuilder.key(CLValueBuilder.byteArray(toBytes));
+  const recipientAccountHash = AccountHash.fromString(toHex);
+  const recipientKey = new Key();
+  recipientKey.account = recipientAccountHash;
+  recipientKey.type = 0; // KeyTypeID.Account
 
   // Updated for CEP-18 module: parameter name is 'recipient', not 'to'
-  const runtimeArgs = RuntimeArgs.fromMap({
-    recipient: recipientKey,
-    amount: CLValueBuilder.u256(params.amount),
+  const args = Args.fromMap({
+    recipient: CLValue.newCLKey(recipientKey),
+    amount: CLValue.newCLUInt256(BigInt(params.amount)),
   });
 
-  const deployParams = new DeployUtil.DeployParams(
-    accountPublicKey,
-    CASPER_CONFIG.CHAIN_NAME,
-    1,
-    1800000
+  const deployHeader = DeployHeader.default();
+  deployHeader.account = accountPublicKey;
+  deployHeader.chainName = CASPER_CONFIG.CHAIN_NAME;
+  deployHeader.ttl = new Duration(1800000);
+  deployHeader.timestamp = new Timestamp(new Date());
+
+  // Use StoredVersionedContractByHash for Package Hashes
+  const contractPackageHash = ContractPackageHash.newContractPackage(tokenHex);
+  const session = new ExecutableDeployItem();
+  session.storedVersionedContractByHash = new StoredVersionedContractByHash(
+    contractPackageHash as any, // The hash parameter expects ContractHash, but package hash works here
+    "mint",
+    args,
+    undefined // Passing undefined automatically selects the latest enabled version
   );
 
-  // CORRECT WAY: Use newStoredVersionContractByHash for Package Hashes
-  const session =
-    DeployUtil.ExecutableDeployItem.newStoredVersionContractByHash(
-      tokenPackageHashBytes,
-      null, // Passing null automatically selects the latest enabled version
-      "mint",
-      runtimeArgs
-    );
+  const payment = ExecutableDeployItem.standardPayment("7500000000");
 
-  const payment = DeployUtil.standardPayment("7500000000");
-
-  return DeployUtil.makeDeploy(deployParams, session, payment);
+  return Deploy.makeDeploy(deployHeader, payment, session);
 };

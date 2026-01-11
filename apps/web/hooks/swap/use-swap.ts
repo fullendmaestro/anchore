@@ -8,7 +8,7 @@ import { useCasperWallet } from "@/lib/casper-wallet-provider";
 import { useState } from "react";
 import { toast } from "sonner";
 import { prepareSwapTransaction } from "./prepare-swap-transaction";
-import { CLPublicKey, DeployUtil } from "casper-js-sdk";
+import { PublicKey, Deploy } from "casper-js-sdk";
 import { submitDeployViaProxy } from "../deploy-utils";
 
 type SwapParams = {
@@ -21,7 +21,7 @@ type SwapParams = {
 
 type SwapExecutionResult = {
   deployHash: string;
-  prepared: DeployUtil.Deploy;
+  prepared: Deploy;
 };
 
 interface SwapResult {
@@ -83,9 +83,9 @@ export const useSwap = () => {
       console.log("Preparing swap transaction...");
 
       // Convert publicKey to account hash for recipient address
-      const pubKey = CLPublicKey.fromHex(publicKey.toString());
-      const accountHashBytes = pubKey.toAccountHash();
-      const accountHash = Buffer.from(accountHashBytes).toString("hex");
+      const pubKey = PublicKey.fromHex(publicKey.toString());
+      const accountHashObj = pubKey.accountHash();
+      const accountHash = accountHashObj.toHex(); // Get the hex string from AccountHash
 
       // Prepare deploy
       const deploy = await prepareSwapTransaction(
@@ -108,7 +108,7 @@ export const useSwap = () => {
       });
 
       // Convert deploy to JSON for wallet signing
-      const deployJson = DeployUtil.deployToJson(deploy);
+      const deployJson: any = Deploy.toJSON(deploy);
 
       // Sign with wallet provider
       toast.info("Please sign the transaction in your wallet");

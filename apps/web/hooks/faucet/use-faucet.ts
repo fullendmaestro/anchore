@@ -6,7 +6,7 @@ import { useCasperWallet } from "@/lib/casper-wallet-provider";
 import { useState } from "react";
 import { toast } from "sonner";
 import { prepareMintTransaction } from "./prepare-mint-transaction";
-import { CLPublicKey, DeployUtil } from "casper-js-sdk";
+import { PublicKey, Deploy } from "casper-js-sdk";
 
 import { submitDeployViaProxy } from "../deploy-utils";
 
@@ -47,9 +47,9 @@ export const useFaucet = () => {
 
       // Parse public key ONCE and reuse the instance
       const pubKeyHex = publicKey.toString();
-      const pubKey = CLPublicKey.fromHex(pubKeyHex);
-      const accountHashBytes = pubKey.toAccountHash();
-      const recipientHash = Buffer.from(accountHashBytes).toString("hex");
+      const pubKey = PublicKey.fromHex(pubKeyHex);
+      const accountHashObj = pubKey.accountHash();
+      const recipientHash = accountHashObj.toHex(); // Get the hex string from AccountHash
 
       const deploy = await prepareMintTransaction(
         {
@@ -70,7 +70,7 @@ export const useFaucet = () => {
       });
 
       // Convert deploy to JSON for wallet signing
-      const deployJson = DeployUtil.deployToJson(deploy);
+      const deployJson: any = Deploy.toJSON(deploy);
       toast.info("Please sign the transaction in your wallet");
       const signResult = await provider.sign(
         JSON.stringify(deployJson),

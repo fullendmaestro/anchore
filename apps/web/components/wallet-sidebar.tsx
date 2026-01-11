@@ -21,6 +21,7 @@ import { sepolia } from "wagmi/chains";
 import { useCasperWallet } from "@/lib/casper-wallet-provider";
 import { toast } from "sonner";
 import { cn } from "@anchore/ui/lib/utils";
+import Link from "next/link";
 
 interface WalletSidebarProps {
   open: boolean;
@@ -239,6 +240,14 @@ export function WalletSidebar({ open, onOpenChange }: WalletSidebarProps) {
               </Button>
             </div>
           )}
+          <Link href="/faucet">
+            <Button
+              variant="outline"
+              className="w-full h-12 justify-start px-4 text-base font-medium border-border hover:bg-secondary/50"
+            >
+              Token faucet
+            </Button>
+          </Link>
         </div>
       </SheetContent>
     </Sheet>

@@ -58,7 +58,7 @@
     "@types/big.js": "^6.2.2",
     "axios": "^1.13.2",
     "big.js": "^7.0.1",
-    "casper-js-sdk": "^2.15.0",
+    "casper-js-sdk": "^5.0.7",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
