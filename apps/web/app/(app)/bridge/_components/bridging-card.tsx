@@ -15,11 +15,12 @@ import { Button } from "@anchore/ui/components/button";
 import { NumericInput } from "./numeric-input";
 import { SelectTokenModal } from "./select-token-modal";
 import { SelectedTokenButton } from "./selected-token-button";
-import { TOKENS } from "@/data";
+import { SwapModal } from "./swap-modal";
+import { TOKENS, CASPER_CHAIN_ID } from "@/data";
+import { CASPER_SWAP_ROUTES } from "@/data/swap-and-bridge-routes";
 import { TokenBase } from "@/data/types";
 
 import { useCasperWallet } from "@/lib/casper-wallet-provider";
-import { useSwap } from "@/hooks/swap/use-swap";
 import { toast } from "sonner";
 
 const formSchema = z.object({
@@ -47,13 +48,13 @@ interface Quote {
 
 export function BridgingCard() {
   const { isConnected, publicKey } = useCasperWallet();
-  const { executeSwap, swapResult, isLoading, resetSwap } = useSwap();
 
   const [sellToken, setSellToken] = useState<TokenBase | null>(
     TOKENS[0] ?? null
   );
   const [buyToken, setBuyToken] = useState<TokenBase | null>(TOKENS[1] ?? null);
   const [quote, setQuote] = useState<Quote | null>(null);
+  const [swapModalOpen, setSwapModalOpen] = useState(false);
   const [modalState, setModalState] = useState<{
     screen: "select-sell-token" | "select-buy-token";
     isOpen: boolean;
@@ -115,25 +116,40 @@ export function BridgingCard() {
       return;
     }
 
-    await executeSwap({
-      sellToken,
-      buyToken,
-      amountIn: data.amount,
-      expectedAmountOut: quote.buyAmount,
-      slippageBps: 100,
-    });
+    // Check if same chain (Casper to Casper)
+    const isCasperSwap =
+      sellToken.chainId === CASPER_CHAIN_ID &&
+      buyToken.chainId === CASPER_CHAIN_ID;
+
+    if (!isCasperSwap) {
+      toast.info("Bridging coming soon");
+      return;
+    }
+
+    // Find pool address
+    const poolRoute = CASPER_SWAP_ROUTES.find(
+      (route) =>
+        (route.token0Address === sellToken.address &&
+          route.token1Address === buyToken.address) ||
+        (route.token1Address === sellToken.address &&
+          route.token0Address === buyToken.address)
+    );
+
+    if (!poolRoute) {
+      toast.error("No pool found for this token pair");
+      return;
+    }
+
+    // Open swap modal
+    setSwapModalOpen(true);
   };
 
   // Reset form after successful swap
-  useEffect(() => {
-    if (swapResult.data) {
-      form.reset();
-      setQuote(null);
-      // Auto-reset after showing success
-      const timer = setTimeout(() => resetSwap(), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [swapResult.data, form, resetSwap]);
+  const handleSwapSuccess = () => {
+    form.reset();
+    setQuote(null);
+    setSwapModalOpen(false);
+  };
 
   return (
     <>
@@ -220,16 +236,9 @@ export function BridgingCard() {
             <Button
               type="submit"
               className="w-full"
-              disabled={
-                !sellToken || !buyToken || !quote || isLoading
-                // || !form.formState.isValid
-              }
+              disabled={!sellToken || !buyToken || !quote}
             >
-              {isLoading
-                ? "Processing swap..."
-                : isCrossChain
-                  ? "Bridge Asset"
-                  : "Swap Asset"}
+              {isCrossChain ? "Bridge Asset" : "Review Swap"}
             </Button>
           </form>
         </CardContent>
@@ -262,6 +271,37 @@ export function BridgingCard() {
           }
         }}
         onClose={() => setModalState({ ...modalState, isOpen: false })}
+      />
+
+      {/* Swap Modal with Approval Flow */}
+      <SwapModal
+        open={swapModalOpen}
+        onOpenChange={(open) => {
+          setSwapModalOpen(open);
+          if (!open) handleSwapSuccess();
+        }}
+        sellToken={sellToken}
+        buyToken={buyToken}
+        sellAmount={form.watch("amount") || "0"}
+        buyAmount={quote?.buyAmount || "0"}
+        poolAddress={
+          CASPER_SWAP_ROUTES.find(
+            (route) =>
+              (route.token0Address === sellToken?.address &&
+                route.token1Address === buyToken?.address) ||
+              (route.token1Address === sellToken?.address &&
+                route.token0Address === buyToken?.address)
+          )?.poolAddress || ""
+        }
+        quote={
+          quote
+            ? {
+                priceImpact: quote.priceImpact,
+                fee: quote.fee,
+                rate: quote.rate,
+              }
+            : null
+        }
       />
     </>
   );

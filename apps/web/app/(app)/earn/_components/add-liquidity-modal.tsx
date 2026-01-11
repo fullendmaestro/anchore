@@ -74,7 +74,7 @@ export function AddLiquidityModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] bg-surface-dark border-border-dark">
+      <DialogContent className="sm:max-w-[500px] border-border-dark">
         {/* Amounts Screen */}
         {screen === ModalScreen.AMOUNTS && (
           <div className="space-y-6">
