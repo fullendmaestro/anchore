@@ -5,15 +5,14 @@ import {
   RuntimeArgs,
 } from "casper-js-sdk";
 import { CASPER_CONFIG } from "../../lib/casper-config";
-import { resolveContractHash } from "../../lib/casper-contracts";
 
 export const prepareMintTransaction = async (
   params: {
     amount: string; // Amount in smallest unit
-    to: string; // Recipient account-hash hex (with or without prefix)
+    to: string; // Recipient account-hash hex
   },
   accountPublicKey: CLPublicKey,
-  tokenHash: string
+  tokenHash: string // This is the Contract Package Hash
 ): Promise<DeployUtil.Deploy> => {
   const stripHashPrefix = (hash: string): string =>
     hash.startsWith("hash-") ? hash.slice(5) : hash;
@@ -21,19 +20,16 @@ export const prepareMintTransaction = async (
   const toHex = stripHashPrefix(params.to);
   const tokenHex = stripHashPrefix(tokenHash);
 
+  // Prepare byte arrays
   const toBytes = Uint8Array.from(Buffer.from(toHex, "hex"));
-  // Resolve contract hash if a package hash was supplied
-  const resolvedHashHex = await resolveContractHash(tokenHex).catch(
-    () => tokenHex
-  );
-  const tokenHashBytes = Uint8Array.from(Buffer.from(resolvedHashHex, "hex"));
+  const tokenPackageHashBytes = Uint8Array.from(Buffer.from(tokenHex, "hex"));
 
-  // Odra Address = Casper Key type (Account or Contract)
   // Build a Key::Account from the account hash
-  const toKey = CLValueBuilder.key(CLValueBuilder.byteArray(toBytes));
+  const recipientKey = CLValueBuilder.key(CLValueBuilder.byteArray(toBytes));
 
+  // Updated for CEP-18 module: parameter name is 'recipient', not 'to'
   const runtimeArgs = RuntimeArgs.fromMap({
-    to: toKey,
+    recipient: recipientKey,
     amount: CLValueBuilder.u256(params.amount),
   });
 
@@ -44,11 +40,14 @@ export const prepareMintTransaction = async (
     1800000
   );
 
-  const session = DeployUtil.ExecutableDeployItem.newStoredContractByHash(
-    tokenHashBytes,
-    "mint",
-    runtimeArgs
-  );
+  // CORRECT WAY: Use newStoredVersionContractByHash for Package Hashes
+  const session =
+    DeployUtil.ExecutableDeployItem.newStoredVersionContractByHash(
+      tokenPackageHashBytes,
+      null, // Passing null automatically selects the latest enabled version
+      "mint",
+      runtimeArgs
+    );
 
   const payment = DeployUtil.standardPayment("7500000000");
 

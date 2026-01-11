@@ -1,35 +1,52 @@
+// Updated with latest Anchore Pool deployments
 export const CASPER_SWAP_ROUTES = [
   {
     token0Address:
-      "7a1e4d2f2941dfe49694c33f9bcbdf1d72a584d0cf8044a99a9b49e883804ea9", // USDC
+      "252b389809b60443e752964db503c3c2e9637fe35d0e7241209c140244ef953f", // USDC
     token1Address:
-      "398e4293208c2a471c09a21f95105f0b642bad1f100639308ed7648ecc1c87a9", // USDT
+      "2c527d04604b9c18109ce2d7637ee264476d99ff22392cf3cf018909e90bad7b", // USDT
     poolAddress:
-      "8246ff67338d6baffba3225f1c033c43df7af8abb5e47717b0613fcec9cd3503",
+      "d23c99bc29ed124dd6aa9057f8c24f0e94cad3ca9009be3f15b23a591833de0d",
   },
   {
     token0Address:
-      "b19b5fce8351a54c061c9e139e4a4f38186ff8fec069380248c6a76d165ae7f6", // WBTC
+      "f5b61fcedd8d66a7e374d624ed5a10bc648977dd7fe3c01e4c378f5d88088b8e", // WBTC
     token1Address:
-      "7a1e4d2f2941dfe49694c33f9bcbdf1d72a584d0cf8044a99a9b49e883804ea9", // USDC
+      "252b389809b60443e752964db503c3c2e9637fe35d0e7241209c140244ef953f", // USDC
     poolAddress:
-      "8388d3cac84df78577d638c2eaba54868ded5e544ed8cba19e404e43d25b0593",
+      "258a5b70b858f9a836d3216f74e5b560d3b642a816f119f415c230638ded8c14",
   },
   {
     token0Address:
-      "c02606904cdcc86d6c41c769cf0de00dae5999dead3dcf5e05f51e3bf434ab31", // DAI
+      "619eda605ee74b8281c31198575d370ad96c821fcc9519d17d3caa60f409ea36", // DAI
     token1Address:
-      "7a1e4d2f2941dfe49694c33f9bcbdf1d72a584d0cf8044a99a9b49e883804ea9", // USDC
+      "252b389809b60443e752964db503c3c2e9637fe35d0e7241209c140244ef953f", // USDC
     poolAddress:
-      "0424aa5f3b1615864341b2b667d63d8e2c491da4a4c1402a8d156dfa73b1f4a4",
+      "066212bb048020ce9c22957712dbe750c693bdeec8131ce33ba00e4b155041fc",
   },
   {
     token0Address:
-      "969b0bf0a8147a4070dcb7211e8d317ac835ba59104a87d11cef72366149d206", // WETH
+      "480b1223fe4773767c9d781644d218b8f86d2c6ba8f106fc958915fa30d5b580", // WETH
     token1Address:
-      "7a1e4d2f2941dfe49694c33f9bcbdf1d72a584d0cf8044a99a9b49e883804ea9", // USDC
+      "252b389809b60443e752964db503c3c2e9637fe35d0e7241209c140244ef953f", // USDC
     poolAddress:
-      "5dd790a221f4d7434710fea747c1bae76655e33e302a5624c31e2ff120066d02",
+      "3263687842c9c2cfba7439e21d73157e34d14bd0026ca33909f2791d58e534ed",
+  },
+  {
+    token0Address:
+      "f5b61fcedd8d66a7e374d624ed5a10bc648977dd7fe3c01e4c378f5d88088b8e", // WBTC
+    token1Address:
+      "619eda605ee74b8281c31198575d370ad96c821fcc9519d17d3caa60f409ea36", // DAI
+    poolAddress:
+      "9e8bf586e08cb27326a9d1b7ea81cce02007305434f8075625995827b3736a3f",
+  },
+  {
+    token0Address:
+      "480b1223fe4773767c9d781644d218b8f86d2c6ba8f106fc958915fa30d5b580", // WETH
+    token1Address:
+      "619eda605ee74b8281c31198575d370ad96c821fcc9519d17d3caa60f409ea36", // DAI
+    poolAddress:
+      "c13d5bdece209b039f9574a6da072c7129abe70ca90a4e73a13415c588e7ad47",
   },
 ];
 
