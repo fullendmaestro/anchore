@@ -76,7 +76,7 @@ export function SwapModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] bg-surface-dark border-border-dark">
+      <DialogContent className="sm:max-w-[500px] overflow-y-auto max-h-[85vh] border-border-dark">
         {/* Review Screen */}
         {screen === ModalScreen.REVIEW && (
           <div className="space-y-6">

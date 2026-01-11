@@ -45,7 +45,7 @@ const ConnectedWalletCard = ({
 }) => (
   <div
     className={cn(
-      "flex items-center justify-between p-3 rounded-xl border bg-secondary/20 transition-colors",
+      "flex items-center justify-between rounded-xl border bg-secondary/20 p-4 transition-colors",
       isError ? "border-red-500/20 bg-red-500/5" : "border-border",
       className
     )}
@@ -133,7 +133,7 @@ export function WalletSidebar({ open, onOpenChange }: WalletSidebarProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:w-[400px] border-l-border"
+        className="w-full sm:w-[420px] border-l-border px-5 py-6"
       >
         <SheetHeader className="mb-6">
           <div className="flex items-center justify-between">
@@ -142,7 +142,7 @@ export function WalletSidebar({ open, onOpenChange }: WalletSidebarProps) {
           </div>
         </SheetHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {/* STATE 1: ONLY CASPER CONNECTED (Show Casper Card + Connect EVM Button) */}
           {!evmConnected && casperConnected && (
             <>
@@ -186,21 +186,19 @@ export function WalletSidebar({ open, onOpenChange }: WalletSidebarProps) {
 
           {/* STATE 3: BOTH CONNECTED (Show Grid View) */}
           {evmConnected && casperConnected && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <ConnectedWalletCard
                 address={evmAddress}
                 networkName={isUnsupportedEvm ? "Unsupported" : "Sepolia"}
                 iconSrc="/icons/networks/ethereum.svg"
                 onDisconnect={() => evmDisconnect()}
                 isError={isUnsupportedEvm}
-                className="col-span-1 px-2"
               />
               <ConnectedWalletCard
                 address={casperPublicKey ?? undefined}
                 networkName="Casper"
                 iconSrc="/icons/networks/Casper.png"
                 onDisconnect={casperDisconnect}
-                className="col-span-1 px-2"
               />
             </div>
           )}
@@ -240,14 +238,17 @@ export function WalletSidebar({ open, onOpenChange }: WalletSidebarProps) {
               </Button>
             </div>
           )}
-          <Link href="/faucet">
-            <Button
-              variant="outline"
-              className="w-full h-12 justify-start px-4 text-base font-medium border-border hover:bg-secondary/50"
-            >
-              Token faucet
-            </Button>
-          </Link>
+
+          <div className="pt-2 border-t border-border/60">
+            <Link href="/faucet">
+              <Button
+                variant="outline"
+                className="mt-2 w-full h-12 justify-start px-4 text-base font-medium border-border hover:bg-secondary/50"
+              >
+                Token faucet
+              </Button>
+            </Link>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

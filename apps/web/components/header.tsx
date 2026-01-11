@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@anchore/ui/components/button";
-import { Menu, Wallet, ChevronDown } from "lucide-react";
+import { Input } from "@anchore/ui/components/input";
+import { Menu, Search, Wallet } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,46 +34,58 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-20 max-w-screen-2xl items-center justify-between w-full">
-          <Link className="flex items-center gap-[2px]" href="/">
-            <Image
-              src="/assets/anchore-logo.png"
-              width={15}
-              height={15}
-              alt="Anchore logo"
-              className="shadow-sm"
-            />
-            <p className="text-3xl font-bold">nchore</p>
-          </Link>
+        <div className="container flex h-20 max-w-screen-2xl w-full items-center gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-6">
+            <Link className="flex items-center" href="/">
+              <Image
+                src="/assets/anchore-logo.png"
+                width={32}
+                height={32}
+                alt="Anchore logo"
+                className="rounded-full bg-card p-1 shadow-sm"
+              />
+            </Link>
 
-          <nav className="hidden md:flex space-x-4">
-            <Link href="/bridge">
-              <Button
-                variant={isActive("/bridge") ? "default" : "ghost"}
-                className="font-semibold"
-              >
-                Bridge
-              </Button>
-            </Link>
-            <Link href="/history">
-              <Button
-                variant={isActive("/history") ? "default" : "ghost"}
-                className="font-semibold"
-              >
-                History
-              </Button>
-            </Link>
-            <Link href="/earn">
-              <Button
-                variant={isActive("/earn") ? "default" : "ghost"}
-                className="font-semibold"
-              >
-                Earn
-              </Button>
-            </Link>
-          </nav>
+            <nav className="hidden md:flex items-center gap-2">
+              <Link href="/bridge">
+                <Button
+                  variant={isActive("/bridge") ? "default" : "ghost"}
+                  className="font-semibold"
+                >
+                  Bridge
+                </Button>
+              </Link>
+              <Link href="/history">
+                <Button
+                  variant={isActive("/history") ? "default" : "ghost"}
+                  className="font-semibold"
+                >
+                  History
+                </Button>
+              </Link>
+              <Link href="/earn">
+                <Button
+                  variant={isActive("/earn") ? "default" : "ghost"}
+                  className="font-semibold"
+                >
+                  Earn
+                </Button>
+              </Link>
+            </nav>
+          </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="hidden md:flex flex-1 justify-center">
+            <div className="relative w-full max-w-xl">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search tokens and pools"
+                className="w-full rounded-xl border-border bg-muted/50 pl-10 shadow-none focus-visible:ring-1 focus-visible:ring-primary"
+              />
+            </div>
+          </div>
+
+          <div className="ml-auto flex items-center space-x-2">
             <Button
               onClick={() => setSidebarOpen(true)}
               variant="ghost"

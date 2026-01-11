@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@anchore/ui/components/button";
-import { Menu, Wallet, ChevronDown } from "lucide-react";
+import { ArrowLeft, Wallet } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,9 +33,16 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-20 max-w-screen-2xl items-center justify-between w-full">
-          <Link className="flex items-center gap-[2px]" href="/bridge">
-            <Button>Back</Button>
+        <div className="container flex h-20 max-w-screen-2xl w-full items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link className="flex items-center" href="/bridge">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="group gap-2 rounded-full border border-border/70 bg-card/70 px-3 py-1.5 hover:-translate-y-[1px] hover:border-primary/60 hover:bg-primary/10"
+            >
+              <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+              <span className="text-sm font-medium">Back to bridge</span>
+            </Button>
           </Link>
 
           <div className="flex items-center space-x-2">
